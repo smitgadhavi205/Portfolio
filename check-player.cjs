@@ -1,0 +1,6 @@
+const vm=require('vm'),fs=require('fs'),assert=require('assert');
+const button={events:{},setAttribute(k,v){this[k]=v},addEventListener(k,v){this.events[k]=v}};
+const status={};const slider={addEventListener(){}};const card={classList:{toggle(k,v){this[k]=v}},setAttribute(){},contains(){return false},querySelector(s){return s==='button'?button:s==='input'?slider:status}};
+let instance;class AudioMock{constructor(){instance=this;this.paused=true;this.events={};this.blocked=true}addEventListener(k,v){this.events[k]=v}play(){if(this.blocked)return Promise.reject({name:'NotAllowedError'});this.paused=false;this.events.playing();return Promise.resolve()}pause(){this.paused=true;this.events.pause()}}
+vm.runInNewContext(fs.readFileSync('dist/music.js','utf8'),{Audio:AudioMock,document:{createElement(){return card},body:{append(){}},addEventListener(){}}});
+setImmediate(()=>{assert.match(status.textContent,/Tap to play/);instance.blocked=false;button.events.click();assert.equal(button['aria-pressed'],'true');assert.equal(card.classList['is-playing'],true);button.events.click();assert.equal(instance.paused,true);assert.equal(button['aria-pressed'],'false');console.log('Passed: autoplay fallback, click-to-play, animation state, pause.');});
